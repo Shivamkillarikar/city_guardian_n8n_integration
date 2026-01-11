@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import time
 
 # 1. Page Config & Custom Styling
 st.set_page_config(page_title="CityGuardian | Command Center", layout="wide")
 
-# Custom CSS for a "Dark/Professional" look
 st.markdown("""
     <style>
     .main { background-color: #f5f7f9; }
@@ -17,13 +17,26 @@ st.markdown("""
 st.title("🛡️ CityGuardian: Executive Command Center")
 st.markdown("---")
 
-# 2. Data Loading & Cleaning
+# 2. Data Loading & Global Cleaning
 SHEET_ID = '1yHcKcLdv0TEEpEZ3cAWd9A_t8MBE-yk4JuWqJKn0IeI'
-SHEET_URL = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv'
+# Added a timestamp to the URL to force Google to bypass its 5-minute cache
+SHEET_URL = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&timestamp={time.time()}'
 
 try:
     df = pd.read_csv(SHEET_URL)
     
+    # --- GLOBAL CLEANING (Fixes everything at once) ---
+    df.columns = [c.strip() for c in df.columns] # Strip spaces from headers
+    
+    if 'Status' in df.columns:
+        df['Status'] = df['Status'].astype(str).str.strip().str.capitalize()
+    
+    if 'Category' in df.columns:
+        df['Category'] = df['Category'].astype(str).str.strip()
+        
+    if 'Urgency' in df.columns:
+        df['Urgency'] = df['Urgency'].astype(str).str.strip().str.lower()
+
     # Clean Coordinates
     if 'Location' in df.columns:
         coords = df['Location'].str.split(',', expand=True)
@@ -32,8 +45,10 @@ try:
         df = df.dropna(subset=['lat', 'lon'])
 
     # 3. Top Row Metrics
-    # 3. Top Row Metrics (Upgraded to Plotly Indicators)
-    res_rate = (len(df[df['Status'] == 'Resolved']) / len(df)) * 100 if len(df) > 0 else 0
+    # Now that data is cleaned globally, these filters will work perfectly
+    pending_count = len(df[df['Status'] == 'Pending'])
+    resolved_count = len(df[df['Status'] == 'Resolved'])
+    res_rate = (resolved_count / len(df)) * 100 if len(df) > 0 else 0
 
     m1, m2, m3, m4 = st.columns(4)
 
@@ -49,50 +64,24 @@ try:
         st.plotly_chart(fig1, use_container_width=True)
 
     # Active Cases Card
-   #with m2:
-        #active_count = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
-       # fig2 = go.Figure(go.Indicator(
-         #   mode = "number",
-            #value = len(df[df['Status'] == 'Pending']),
-           # value = active_count,
-          #  title = {"text": "Active Cases ⏳"},
-         #   number = {'font': {'color': "#e74c3c"}}
-       # ))
-       # fig2.update_layout(height=150, margin=dict(t=30, b=0))
-       # st.plotly_chart(fig2, use_container_width=True)
-
-   with m2:
-    # Standardize
-    df.columns = [c.strip() for c in df.columns]
-    
-    # Check if column exists
-    if 'Status' in df.columns:
-        # Get unique values to see what's actually inside that column
-        unique_statuses = df['Status'].unique().tolist()
-        
-        # Calculate count
-        val = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
-        
-        if val == 0:
-            st.warning(f"Found 0 cases. Column has: {unique_statuses}")
-        
+    with m2:
+        if pending_count == 0:
+            st.warning(f"No Pending cases found. Check status column!")
+            
         fig2 = go.Figure(go.Indicator(
             mode = "number",
-            value = val,
+            value = pending_count,
             title = {"text": "Active Cases ⏳"},
             number = {'font': {'color': "#e74c3c"}}
         ))
         fig2.update_layout(height=150, margin=dict(t=30, b=0))
         st.plotly_chart(fig2, use_container_width=True)
-    else:
-        st.error("Column 'Status' missing from Sheet!")
-        
 
     # Resolved Card
     with m3:
         fig3 = go.Figure(go.Indicator(
             mode = "number",
-            value = len(df[df['Status'] == 'Resolved']),
+            value = resolved_count,
             title = {"text": "Resolved ✅"},
             number = {'font': {'color': "#27ae60"}}
         ))
@@ -115,7 +104,6 @@ try:
 
     with col_left:
         st.subheader("📌 Status Overview")
-        # Donut Chart for Status
         fig_status = px.pie(df, names='Status', hole=0.6, 
                             color_discrete_map={'Resolved':'#2ecc71', 'Pending':'#e74c3c'},
                             template="plotly_white")
@@ -124,7 +112,6 @@ try:
 
     with col_right:
         st.subheader("🏢 Department Workload")
-        # Horizontal Bar Chart for Categories by Urgency
         fig_dept = px.histogram(df, y="Category", color="Urgency", 
                                 orientation='h', barmode='group',
                                 color_discrete_map={'high':'#d35400', 'medium':'#f1c40f', 'low':'#3498db'},
@@ -138,21 +125,18 @@ try:
 
     with c1:
         st.subheader("🗺️ Live Issue Map")
-        # Using Plotly Scatter Mapbox for a "Cooler" map
         fig_map = px.scatter_map(df, lat="lat", lon="lon", color="Urgency", size_max=15, zoom=10,
                                      map_style="carto-positron", title="Issue Distribution",
-                                     hover_name="Category", hover_data=["Status", "Issue"])
+                                     hover_name="Category", hover_data=["Status"])
         fig_map.update_layout(margin=dict(t=0, b=0, l=0, r=0))
         st.plotly_chart(fig_map, use_container_width=True)
 
     with c2:
         st.subheader("📈 Urgency Trends")
-        # Sunburst Chart: Shows Category -> Urgency relationship
         fig_sun = px.sunburst(df, path=['Category', 'Urgency'], color='Urgency',
                               color_discrete_map={'high':'#d35400', 'medium':'#f1c40f', 'low':'#3498db'})
         st.plotly_chart(fig_sun, use_container_width=True)
 
 except Exception as e:
-
-    st.error(f"Waiting for valid data connection... {e}")
-
+    st.error(f"Error: {e}")
+    
