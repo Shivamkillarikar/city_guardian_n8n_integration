@@ -1,5 +1,6 @@
 let latitude = null, longitude = null;
 let map, marker, lightTiles, darkTiles;
+let currentAddress=null;
 
 // ---------------- IMAGE PREVIEW ----------------
 document.getElementById("image").addEventListener("change", (e) => {
@@ -16,8 +17,9 @@ navigator.geolocation.getCurrentPosition(async (pos) => {
     latitude = pos.coords.latitude;
     longitude = pos.coords.longitude;
 
-    const address = await reverseGeocode(latitude, longitude);
-    document.getElementById("locationInfo").innerText = address;
+    //const address = await reverseGeocode(latitude, longitude);
+    currentAddress = await reverseGeocode(latitude,longitude);
+    document.getElementById("locationInfo").innerText = currentAddress;
     document.getElementById("locationSkeleton").classList.add("d-none");
     document.getElementById("mapSkeleton").classList.add("d-none");
     document.getElementById("locationInfo").classList.remove("d-none");
@@ -95,6 +97,7 @@ document.getElementById("reportForm").addEventListener("submit", async (e) => {
     formData.append("complaint", document.getElementById("complaint").value);
     formData.append("latitude", latitude);
     formData.append("longitude", longitude);
+    formData.append("address", currentAddress);
     if (document.getElementById("image").files[0]) {
         formData.append("image", document.getElementById("image").files[0]);
     }
@@ -212,4 +215,5 @@ if (SpeechRecognition) {
     document.getElementById("voiceBtn").innerText = "🎤 Voice not supported";
 
 }
+
 
