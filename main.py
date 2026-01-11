@@ -254,6 +254,7 @@ async def send_report(
     complaint: str = Form(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
+    address: str = Form(...),
     image: UploadFile = File(None),
 ):
     attachment = None
@@ -267,6 +268,9 @@ async def send_report(
 
     classification = classification_agent(complaint)
     report_id = str(uuid.uuid4())[:8] # Short unique ID
+    loc_display = address if address else f"{latitude},{longitude}"
+    google_maps_link= f"https://www.google.com/maps?q={latitude},{longitude}"
+    full_location_info=f"{loc_display}\nGoogle Maps:{google_maps_link}"
     n8n_data = {
         "ID": report_id,
         "Date": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -309,7 +313,7 @@ async def send_report(
     name=name,
     email=email,
     complaint=complaint,
-    location=location_text,
+    location=full_location_info,
     category=classification["category"],
     urgency=classification["urgency"]
 )
@@ -340,3 +344,4 @@ async def send_report(
 @app.get("/")
 def health():
     return {"status": "CityGuardian backend running"}
+
