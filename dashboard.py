@@ -49,17 +49,44 @@ try:
         st.plotly_chart(fig1, use_container_width=True)
 
     # Active Cases Card
-    with m2:
-        active_count = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
+   #with m2:
+        #active_count = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
+       # fig2 = go.Figure(go.Indicator(
+         #   mode = "number",
+            #value = len(df[df['Status'] == 'Pending']),
+           # value = active_count,
+          #  title = {"text": "Active Cases ⏳"},
+         #   number = {'font': {'color': "#e74c3c"}}
+       # ))
+       # fig2.update_layout(height=150, margin=dict(t=30, b=0))
+       # st.plotly_chart(fig2, use_container_width=True)
+
+   with m2:
+    # Standardize
+    df.columns = [c.strip() for c in df.columns]
+    
+    # Check if column exists
+    if 'Status' in df.columns:
+        # Get unique values to see what's actually inside that column
+        unique_statuses = df['Status'].unique().tolist()
+        
+        # Calculate count
+        val = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
+        
+        if val == 0:
+            st.warning(f"Found 0 cases. Column has: {unique_statuses}")
+        
         fig2 = go.Figure(go.Indicator(
             mode = "number",
-            #value = len(df[df['Status'] == 'Pending']),
-            value = active_count,
+            value = val,
             title = {"text": "Active Cases ⏳"},
             number = {'font': {'color': "#e74c3c"}}
         ))
         fig2.update_layout(height=150, margin=dict(t=30, b=0))
         st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.error("Column 'Status' missing from Sheet!")
+        
 
     # Resolved Card
     with m3:
@@ -128,3 +155,4 @@ try:
 except Exception as e:
 
     st.error(f"Waiting for valid data connection... {e}")
+
