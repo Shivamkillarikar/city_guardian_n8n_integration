@@ -50,9 +50,11 @@ try:
 
     # Active Cases Card
     with m2:
+        active_count = len(df[df['Status'].astype(str).str.strip().str.capitalize() == 'Pending'])
         fig2 = go.Figure(go.Indicator(
             mode = "number",
-            value = len(df[df['Status'] == 'Pending']),
+            #value = len(df[df['Status'] == 'Pending']),
+            value = active_count,
             title = {"text": "Active Cases ⏳"},
             number = {'font': {'color': "#e74c3c"}}
         ))
@@ -124,4 +126,5 @@ try:
         st.plotly_chart(fig_sun, use_container_width=True)
 
 except Exception as e:
+
     st.error(f"Waiting for valid data connection... {e}")
