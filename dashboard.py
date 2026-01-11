@@ -56,7 +56,7 @@ try:
         df = df.dropna(subset=['lat', 'lon'])
 
     # 3. Metrics Calculation
-    pending_count = len(df[df['Status'] == 'Pending'])
+    pending_count = len(df[df['Status'] == 'Pending '])
     resolved_count = len(df[df['Status'] == 'Resolved'])
     total_count = len(df)
     res_rate = (resolved_count / total_count) * 100 if total_count > 0 else 0
@@ -158,3 +158,4 @@ try:
 except Exception as e:
     st.error(f"Waiting for data connection... ({str(e)})")
     
+
